@@ -39,15 +39,15 @@
           suggestions: "Personas que quizás conozcas",
           contacts: "Contactos",
           language: "Idioma",
-          error: "Ocurrió un error: {message}. Por favor, intenta de nuevo o recarga la página.",
+          error: "Error al cargar {endpoint}: {message}. Por favor, intenta de nuevo o recarga la página.",
           retry: "Reintentar"
         },
-        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", oneXten: "1x10", error: "Alainnapa: {message}. Jale jujuya.", retry: "Jujuya" },
-        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", oneXten: "1x10", error: "Pawana: {message}. Wökö puyö.", retry: "Puyö" },
-        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", oneXten: "1x10", error: "An error occurred: {message}. Please try again or reload.", retry: "Retry" },
-        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", oneXten: "1x10", error: "Ошибка: {message}. Перезагрузите.", retry: "Повторить" },
-        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", oneXten: "1x10", error: "حدث خطأ: {message}. أعد التحميل.", retry: "إعادة المحاولة" },
-        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", oneXten: "1x10", error: "发生错误：{message}。请刷新。", retry: "重试" }
+        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", oneXten: "1x10", error: "Alainnapa {endpoint}: {message}. Jale jujuya.", retry: "Jujuya" },
+        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", oneXten: "1x10", error: "Pawana {endpoint}: {message}. Wökö puyö.", retry: "Puyö" },
+        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", oneXten: "1x10", error: "Error loading {endpoint}: {message}. Please try again or reload.", retry: "Retry" },
+        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", oneXten: "1x10", error: "Ошибка загрузки {endpoint}: {message}. Перезагрузите.", retry: "Повторить" },
+        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", oneXten: "1x10", error: "خطأ في تحميل {endpoint}: {message}. أعد التحميل.", retry: "إعادة المحاولة" },
+        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", oneXten: "1x10", error: "加载{endpoint}错误：{message}。请刷新。", retry: "重试" }
       };
 
       // 1x10 Component
@@ -55,13 +55,18 @@
         const [members, setMembers] = React.useState([]);
         const [error, setError] = React.useState(null);
 
-        React.useEffect(() => {
+        const fetchMembers = () => {
+          setError(null);
           axios.get("/api/1x10")
             .then((res) => setMembers(Array.isArray(res.data) ? res.data : []))
             .catch((err) => {
               console.error("Error fetching 1x10 members:", err.message);
-              setError(t.error.replace("{message}", err.message));
+              setError(t.error.replace("{endpoint}", "/api/1x10").replace("{message}", err.message));
             });
+        };
+
+        React.useEffect(() => {
+          fetchMembers();
         }, []);
 
         if (error) {
@@ -69,6 +74,12 @@
             <div className="p-4 text-[#2a2a2a]">
               <h2>Error</h2>
               <p>{error}</p>
+              <button
+                className="bg-[#e11a1d] text-white p-2 rounded mt-2"
+                onClick={fetchMembers}
+              >
+                {t.retry}
+              </button>
             </div>
           );
         }
@@ -118,25 +129,31 @@
         const [error, setError] = React.useState(null);
         const [currentSection, setCurrentSection] = React.useState("home");
 
-        // Fetch data
-        const fetchData = () => {
+        // Fetch news
+        const fetchNews = () => {
           setError(null);
           axios.get("/api/news")
             .then((res) => setNews(Array.isArray(res.data) ? res.data : []))
             .catch((err) => {
               console.error("Error fetching news:", err.message);
-              setError(t.error.replace("{message}", err.message));
+              setError(t.error.replace("{endpoint}", "/api/news").replace("{message}", err.message));
             });
+        };
+
+        // Fetch posts
+        const fetchPosts = () => {
+          setError(null);
           axios.get("/api/posts")
             .then((res) => setPosts(Array.isArray(res.data) ? res.data : []))
             .catch((err) => {
               console.error("Error fetching posts:", err.message);
-              setError(t.error.replace("{message}", err.message));
+              setError(t.error.replace("{endpoint}", "/api/posts").replace("{message}", err.message));
             });
         };
 
         React.useEffect(() => {
-          fetchData();
+          fetchNews();
+          fetchPosts();
         }, []);
 
         const t = translations[language] || translations.es;
@@ -149,7 +166,10 @@
               <p>{error}</p>
               <button
                 className="bg-[#e11a1d] text-white p-2 rounded mt-2"
-                onClick={fetchData}
+                onClick={() => {
+                  if (error.includes("/api/news")) fetchNews();
+                  if (error.includes("/api/posts")) fetchPosts();
+                }}
               >
                 {t.retry}
               </button>
