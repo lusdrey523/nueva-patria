@@ -39,15 +39,15 @@
           suggestions: "Personas que quizás conozcas",
           contacts: "Contactos",
           language: "Idioma",
-          error: "Error al cargar {endpoint}: {message}. Por favor, intenta de nuevo o recarga la página.",
+          error: "Error al cargar {endpoint}: {message}.",
           retry: "Reintentar"
         },
-        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", oneXten: "1x10", error: "Alainnapa {endpoint}: {message}. Jale jujuya.", retry: "Jujuya" },
-        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", oneXten: "1x10", error: "Pawana {endpoint}: {message}. Wökö puyö.", retry: "Puyö" },
-        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", oneXten: "1x10", error: "Error loading {endpoint}: {message}. Please try again or reload.", retry: "Retry" },
-        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", oneXten: "1x10", error: "Ошибка загрузки {endpoint}: {message}. Перезагрузите.", retry: "Повторить" },
-        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", oneXten: "1x10", error: "خطأ في تحميل {endpoint}: {message}. أعد التحميل.", retry: "إعادة المحاولة" },
-        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", oneXten: "1x10", error: "加载{endpoint}错误：{message}。请刷新。", retry: "重试" }
+        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", oneXten: "1x10", error: "Alainnapa {endpoint}: {message}.", retry: "Jujuya" },
+        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", oneXten: "1x10", error: "Pawana {endpoint}: {message}.", retry: "Puyö" },
+        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", oneXten: "1x10", error: "Error loading {endpoint}: {message}.", retry: "Retry" },
+        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", oneXten: "1x10", error: "Ошибка загрузки {endpoint}: {message}.", retry: "Повторить" },
+        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", oneXten: "1x10", error: "خطأ في تحميل {endpoint}: {message}.", retry: "إعادة المحاولة" },
+        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", oneXten: "1x10", error: "加载{endpoint}错误：{message}。", retry: "重试" }
       };
 
       // 1x10 Component
@@ -126,28 +126,38 @@
         const [news, setNews] = React.useState([]);
         const [showMessagePopup, setShowMessagePopup] = React.useState(false);
         const [showBirthdayPopup, setShowBirthdayPopup] = React.useState(false);
-        const [error, setError] = React.useState(null);
+        const [errors, setErrors] = React.useState([]);
         const [currentSection, setCurrentSection] = React.useState("home");
 
         // Fetch news
         const fetchNews = () => {
-          setError(null);
           axios.get("/api/news")
-            .then((res) => setNews(Array.isArray(res.data) ? res.data : []))
+            .then((res) => {
+              setNews(Array.isArray(res.data) ? res.data : []);
+              setErrors((prev) => prev.filter((err) => !err.includes("/api/news")));
+            })
             .catch((err) => {
               console.error("Error fetching news:", err.message);
-              setError(t.error.replace("{endpoint}", "/api/news").replace("{message}", err.message));
+              setErrors((prev) => [
+                ...prev.filter((err) => !err.includes("/api/news")),
+                t.error.replace("{endpoint}", "/api/news").replace("{message}", err.message)
+              ]);
             });
         };
 
         // Fetch posts
         const fetchPosts = () => {
-          setError(null);
           axios.get("/api/posts")
-            .then((res) => setPosts(Array.isArray(res.data) ? res.data : []))
+            .then((res) => {
+              setPosts(Array.isArray(res.data) ? res.data : []);
+              setErrors((prev) => prev.filter((err) => !err.includes("/api/posts")));
+            })
             .catch((err) => {
               console.error("Error fetching posts:", err.message);
-              setError(t.error.replace("{endpoint}", "/api/posts").replace("{message}", err.message));
+              setErrors((prev) => [
+                ...prev.filter((err) => !err.includes("/api/posts")),
+                t.error.replace("{endpoint}", "/api/posts").replace("{message}", err.message)
+              ]);
             });
         };
 
@@ -159,16 +169,18 @@
         const t = translations[language] || translations.es;
 
         // Error fallback
-        if (error) {
+        if (errors.length > 0) {
           return (
             <div className="p-4 text-[#2a2a2a]">
               <h2>Error</h2>
-              <p>{error}</p>
+              {errors.map((error, index) => (
+                <p key={index}>{error}</p>
+              ))}
               <button
                 className="bg-[#e11a1d] text-white p-2 rounded mt-2"
                 onClick={() => {
-                  if (error.includes("/api/news")) fetchNews();
-                  if (error.includes("/api/posts")) fetchPosts();
+                  if (errors.some((err) => err.includes("/api/news"))) fetchNews();
+                  if (errors.some((err) => err.includes("/api/posts"))) fetchPosts();
                 }}
               >
                 {t.retry}
@@ -212,7 +224,7 @@
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto mt-16 flex flex-row space-x-4 px-4">
-              {/* Left Sidebar */}
+              <!-- Left Sidebar -->
               <aside className="w-1/4 bg-[#f6f6f6] sticky top-16">
                 <ul className="space-y-2 p-4">
                   <li className="flex items-center p-2 hover:bg-[#e9e9e9] rounded" onClick={() => setCurrentSection("home")}>
@@ -238,17 +250,17 @@
                 </ul>
               </aside>
 
-              {/* Central Feed */}
+              <!-- Central Feed -->
               <main className="w-2/4 space-y-4">
                 {currentSection === "home" && (
                   <>
-                    {/* Tarjeta de Protección Social */}
+                    <!-- Tarjeta de Protección Social -->
                     <div className="bg-[#FFD700] p-4 rounded shadow-[#e2e2e2]">
                       <h2 className="text-[#2a2a2a] font-bold">Tarjeta de Protección Social</h2>
                       <p>Accede a beneficios personalizados según tu perfil.</p>
                     </div>
 
-                    {/* News Feed */}
+                    <!-- News Feed -->
                     {news.length > 0 ? (
                       news.map((item) => (
                         <div
@@ -270,7 +282,7 @@
                       <p className="text-[#2a2a2a]">Cargando noticias...</p>
                     )}
 
-                    {/* Social Posts */}
+                    <!-- Social Posts -->
                     {posts.length > 0 ? (
                       posts.map((post) => (
                         <div
@@ -304,7 +316,7 @@
 
                 {currentSection === "news" && (
                   <>
-                    {/* News Feed Only */}
+                    <!-- News Feed Only -->
                     {news.length > 0 ? (
                       news.map((item) => (
                         <div
@@ -330,7 +342,7 @@
 
                 {currentSection === "social" && (
                   <>
-                    {/* Social Posts Only */}
+                    <!-- Social Posts Only -->
                     {posts.length > 0 ? (
                       posts.map((post) => (
                         <div
@@ -372,9 +384,9 @@
                 )}
               </main>
 
-              {/* Right Sidebar */}
+              <!-- Right Sidebar -->
               <aside className="w-1/4 sticky top-16">
-                {/* Ads */}
+                <!-- Ads -->
                 <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] mb-4">
                   <h3 className="text-[#2a2a2a] font-bold">Publicidad</h3>
                   <div className="flex items-center mt-2">
@@ -386,7 +398,7 @@
                   </div>
                 </div>
 
-                {/* Birthdays */}
+                <!-- Birthdays -->
                 <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] mb-4">
                   <h3 className="text-[#2a2a2a] font-bold">{t.birthdays}</h3>
                   <p className="text-[#2a2a2a]">
@@ -400,7 +412,7 @@
                   </p>
                 </div>
 
-                {/* Suggestions */}
+                <!-- Suggestions -->
                 <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] mb-4">
                   <h3 className="text-[#2a2a2a] font-bold">{t.suggestions}</h3>
                   <div className="flex items-center mt-2">
@@ -416,7 +428,7 @@
                   </div>
                 </div>
 
-                {/* Contacts */}
+                <!-- Contacts -->
                 <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]">
                   <h3 className="text-[#2a2a2a] font-bold">{t.contacts}</h3>
                   <div className="flex items-center mt-2">
@@ -434,7 +446,7 @@
               </aside>
             </div>
 
-            {/* Message Button and Popup */}
+            <!-- Message Button and Popup -->
             <button
               className="fixed bottom-4 right-4 bg-[#e11a1d] text-white p-4 rounded-full shadow"
               onClick={() => setShowMessagePopup(true)}
@@ -454,7 +466,7 @@
               </div>
             )}
 
-            {/* Birthday Popup */}
+            <!-- Birthday Popup -->
             {showBirthdayPopup && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                 <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]">
@@ -474,7 +486,7 @@
               </div>
             )}
 
-            {/* Footer */}
+            <!-- Footer -->
             <footer className="bg-[#f6f6f6] text-[#2a2a2a] text-[10px] py-4 mt-4">
               <div className="max-w-7xl mx-auto px-4">
                 <p>Plataforma Patria © 2025 | Términos | Privacidad</p>
