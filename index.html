@@ -39,14 +39,15 @@
           suggestions: "Personas que quizás conozcas",
           contacts: "Contactos",
           language: "Idioma",
-          error: "Ocurrió un error. Por favor, recarga la página."
+          error: "Ocurrió un error: {message}. Por favor, intenta de nuevo o recarga la página.",
+          retry: "Reintentar"
         },
-        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", oneXten: "1x10", error: "Alainnapa. Jale jujuya." },
-        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", oneXten: "1x10", error: "Pawana. Wökö puyö." },
-        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", oneXten: "1x10", error: "An error occurred. Please reload." },
-        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", oneXten: "1x10", error: "Ошибка. Перезагрузите." },
-        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", oneXten: "1x10", error: "حدث خطأ. أعد التحميل." },
-        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", oneXten: "1x10", error: "发生错误。请刷新。" }
+        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", oneXten: "1x10", error: "Alainnapa: {message}. Jale jujuya.", retry: "Jujuya" },
+        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", oneXten: "1x10", error: "Pawana: {message}. Wökö puyö.", retry: "Puyö" },
+        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", oneXten: "1x10", error: "An error occurred: {message}. Please try again or reload.", retry: "Retry" },
+        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", oneXten: "1x10", error: "Ошибка: {message}. Перезагрузите.", retry: "Повторить" },
+        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", oneXten: "1x10", error: "حدث خطأ: {message}. أعد التحميل.", retry: "إعادة المحاولة" },
+        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", oneXten: "1x10", error: "发生错误：{message}。请刷新。", retry: "重试" }
       };
 
       // 1x10 Component
@@ -59,7 +60,7 @@
             .then((res) => setMembers(Array.isArray(res.data) ? res.data : []))
             .catch((err) => {
               console.error("Error fetching 1x10 members:", err.message);
-              setError("No se pudieron cargar los miembros.");
+              setError(t.error.replace("{message}", err.message));
             });
         }, []);
 
@@ -115,22 +116,27 @@
         const [showMessagePopup, setShowMessagePopup] = React.useState(false);
         const [showBirthdayPopup, setShowBirthdayPopup] = React.useState(false);
         const [error, setError] = React.useState(null);
-        const [currentSection, set也将 setCurrentSection("home");
+        const [currentSection, setCurrentSection] = React.useState("home");
 
         // Fetch data
-        React.useEffect(() => {
+        const fetchData = () => {
+          setError(null);
           axios.get("/api/news")
             .then((res) => setNews(Array.isArray(res.data) ? res.data : []))
             .catch((err) => {
               console.error("Error fetching news:", err.message);
-              setError("No se pudieron cargar las noticias.");
+              setError(t.error.replace("{message}", err.message));
             });
           axios.get("/api/posts")
             .then((res) => setPosts(Array.isArray(res.data) ? res.data : []))
             .catch((err) => {
               console.error("Error fetching posts:", err.message);
-              setError("No se pudieron cargar las publicaciones.");
+              setError(t.error.replace("{message}", err.message));
             });
+        };
+
+        React.useEffect(() => {
+          fetchData();
         }, []);
 
         const t = translations[language] || translations.es;
@@ -141,7 +147,12 @@
             <div className="p-4 text-[#2a2a2a]">
               <h2>Error</h2>
               <p>{error}</p>
-              <p>Por favor, recarga la página.</p>
+              <button
+                className="bg-[#e11a1d] text-white p-2 rounded mt-2"
+                onClick={fetchData}
+              >
+                {t.retry}
+              </button>
             </div>
           );
         }
