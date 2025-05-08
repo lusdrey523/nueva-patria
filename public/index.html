@@ -4,15 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plataforma Patria</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- Load React and ReactDOM -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- Load Babel for JSX transpilation -->
+  <script src="https://unpkg.com/@babel/standalone@7.22.20/Babel.min.js"></script>
+  <!-- Load Axios for API calls -->
+  <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+  <!-- Load Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7.22.20/Babel.min.js"></script>
 </head>
 <body class="bg-[#f6f6f6]">
   <div id="root"></div>
   <script type="text/babel">
+    // Fallback UI if React fails
+    if (!window.React || !window.ReactDOM) {
+      document.getElementById("root").innerHTML = `
+        <div style="padding: 20px; color: #2a2a2a;">
+          Error: No se pudo cargar la aplicación. Por favor, recarga la página o verifica tu conexión.
+        </div>
+      `;
+    }
+
     // Language translations
     const translations = {
       es: {
@@ -35,17 +48,18 @@
     };
 
     // Error Boundary Component
-    class ErrorBoundary extends React.Component {
-      state = { hasError: false };
-      static getDerivedStateFromError(error) {
-        return { hasError: true };
+    function ErrorBoundary({ t, children }) {
+      const [hasError, setHasError] = React.useState(false);
+
+      React.useEffect(() => {
+        window.onerror = () => setHasError(true);
+        return () => (window.onerror = null);
+      }, []);
+
+      if (hasError) {
+        return <div className="p-4 text-[#2a2a2a]">{t.error}</div>;
       }
-      render() {
-        if (this.state.hasError) {
-          return <div className="p-4 text-[#2a2a2a]">{this.props.t.error}</div>;
-        }
-        return this.props.children;
-      }
+      return children;
     }
 
     // Main App Component
@@ -56,17 +70,17 @@
       const [showMessagePopup, setShowMessagePopup] = React.useState(false);
       const [showBirthdayPopup, setShowBirthdayPopup] = React.useState(false);
 
-      // Fetch data on mount with error handling
+      // Fetch data with error handling
       React.useEffect(() => {
         axios.get("/api/news")
           .then((res) => setNews(res.data || []))
-          .catch((err) => console.error("Error fetching news:", err));
+          .catch((err) => console.error("Error fetching news:", err.message));
         axios.get("/api/posts")
           .then((res) => setPosts(res.data || []))
-          .catch((err) => console.error("Error fetching posts:", err));
+          .catch((err) => console.error("Error fetching posts:", err.message));
       }, []);
 
-      const t = translations[language];
+      const t = translations[language] || translations.es;
 
       return (
         <ErrorBoundary t={t}>
@@ -129,19 +143,26 @@
               {/* Central Feed */}
               <main className="w-2/4 space-y-4">
                 {/* Tarjeta de Protección Social */}
-                <div className="bg-[#FFD700] p-4 rounded shadow-[#e2e2e2] shadow">
+                <div className="bg-[#FFD700] p-4 rounded shadow-[#e2e2e2]">
                   <h2 className="text-[#2a2a2a] font-bold">Tarjeta de Protección Social</h2>
                   <p>Accede a beneficios personalizados según tu perfil.</p>
                 </div>
 
                 {/* News Feed */}
-                {news.length ? (
+                {news.length > 0 ? (
                   news.map((item) => (
-                    <div key={item?.id} className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow">
-                      <img src={item?.image} alt="News" className="w-full h-40 object-cover rounded" />
-                      <h3 className="text-[#2a2a2a] font-bold">{item?.title}</h3>
-                      <p className="text-[#2a2a2a]">{item?.summary}</p>
-                      <span className="text-[#b31611]">{item?.category}</span>
+                    <div
+                      key={item.id || Math.random()}
+                      className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]"
+                    >
+                      <img
+                        src={item.image || "https://via.placeholder.com/300"}
+                        alt="News"
+                        className="w-full h-40 object-cover rounded"
+                      />
+                      <h3 className="text-[#2a2a2a] font-bold">{item.title || "Sin título"}</h3>
+                      <p className="text-[#2a2a2a]">{item.summary || "Sin resumen"}</p>
+                      <span className="text-[#b31611]">{item.category || "General"}</span>
                     </div>
                   ))
                 ) : (
@@ -149,17 +170,24 @@
                 )}
 
                 {/* Social Posts */}
-                {posts.length ? (
+                {posts.length > 0 ? (
                   posts.map((post) => (
-                    <div key={post?.id} className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow">
+                    <div
+                      key={post.id || Math.random()}
+                      className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]"
+                    >
                       <div className="flex items-center">
-                        <img src={post?.userAvatar} alt="User" className="w-10 h-10 rounded-full" />
+                        <img
+                          src={post.userAvatar || "https://via.placeholder.com/40"}
+                          alt="User"
+                          className="w-10 h-10 rounded-full"
+                        />
                         <div className="ml-2">
-                          <p className="text-[#2a2a2a] font-bold">{post?.userName}</p>
-                          <p className="text-[#bcbcbc] text-sm">{post?.time}</p>
+                          <p className="text-[#2a2a2a] font-bold">{post.userName || "Anónimo"}</p>
+                          <p className="text-[#bcbcbc] text-sm">{post.time || "Desconocido"}</p>
                         </div>
                       </div>
-                      <p className="mt-2 text-[#2a2a2a]">{post?.content}</p>
+                      <p className="mt-2 text-[#2a2a2a]">{post.content || "Sin contenido"}</p>
                       <div className="flex space-x-4 mt-2">
                         <button className="text-[#919191]">Like</button>
                         <button className="text-[#919191]">Comentar</button>
@@ -174,7 +202,7 @@
               {/* Right Sidebar */}
               <aside className="w-1/4 sticky top-16">
                 {/* Ads */}
-                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow mb-4">
+                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] mb-4">
                   <h3 className="text-[#2a2a2a] font-bold">Publicidad</h3>
                   <div className="flex items-center mt-2">
                     <img src="https://via.placeholder.com/50" alt="Ad" className="w-12 h-12" />
@@ -186,7 +214,7 @@
                 </div>
 
                 {/* Birthdays */}
-                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow mb-4">
+                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] mb-4">
                   <h3 className="text-[#2a2a2a] font-bold">{t.birthdays}</h3>
                   <p className="text-[#2a2a2a]">
                     Hoy es el cumpleaños de: Juan Pérez
@@ -200,7 +228,7 @@
                 </div>
 
                 {/* Suggestions */}
-                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow mb-4">
+                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] mb-4">
                   <h3 className="text-[#2a2a2a] font-bold">{t.suggestions}</h3>
                   <div className="flex items-center mt-2">
                     <img
@@ -216,7 +244,7 @@
                 </div>
 
                 {/* Contacts */}
-                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow">
+                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]">
                   <h3 className="text-[#2a2a2a] font-bold">{t.contacts}</h3>
                   <div className="flex items-center mt-2">
                     <div className="relative">
@@ -241,7 +269,7 @@
               Mensajes
             </button>
             {showMessagePopup && (
-              <div className="fixed bottom-16 right-16 bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow">
+              <div className="fixed bottom-16 right-16 bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]">
                 <h3 className="text-[#2a2a2a] font-bold">Mensajes</h3>
                 <p className="text-[#2a2a2a]">Aquí irán los mensajes...</p>
                 <button
@@ -256,7 +284,7 @@
             {/* Birthday Popup */}
             {showBirthdayPopup && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2] shadow">
+                <div className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]">
                   <h3 className="text-[#2a2a2a] font-bold">Felicitar Cumpleañero</h3>
                   <textarea
                     className="w-full p-2 border rounded"
@@ -284,8 +312,17 @@
       );
     }
 
-    // Render the app
-    ReactDOM.render(<App />, document.getElementById("root"));
+    // Render the app with error handling
+    try {
+      ReactDOM.render(<App />, document.getElementById("root"));
+    } catch (e) {
+      console.error("Render error:", e.message);
+      document.getElementById("root").innerHTML = `
+        <div style="padding: 20px; color: #2a2a2a;">
+          Error al renderizar la aplicación: ${e.message}. Por favor, recarga la página.
+        </div>
+      `;
+    }
   </script>
 </body>
 </html>
