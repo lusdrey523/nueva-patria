@@ -4,86 +4,89 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plataforma Patria</title>
-  <!-- Load React and ReactDOM -->
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <!-- Load Babel for JSX transpilation -->
-  <script src="https://unpkg.com/@babel/standalone@7.22.20/Babel.min.js"></script>
-  <!-- Load Axios for API calls -->
-  <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
-  <!-- Load Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React and ReactDOM -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/Babel.min.js" crossorigin></script>
+  <!-- Axios for API calls -->
+  <script src="https://unpkg.com/axios@1.7.2/dist/axios.min.js" crossorigin></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.10"></script>
 </head>
 <body class="bg-[#f6f6f6]">
   <div id="root"></div>
   <script type="text/babel">
-    // Fallback UI if React fails
-    if (!window.React || !window.ReactDOM) {
+    // Check if dependencies loaded
+    if (!window.React || !window.ReactDOM || !window.Babel || !window.axios) {
       document.getElementById("root").innerHTML = `
-        <div style="padding: 20px; color: #2a2a2a;">
-          Error: No se pudo cargar la aplicación. Por favor, recarga la página o verifica tu conexión.
+        <div style="padding: 20px; color: #2a2a2a; font-family: Arial;">
+          <h2>Error de Carga</h2>
+          <p>No se pudieron cargar las dependencias necesarias (React, ReactDOM, Babel o Axios).</p>
+          <p>Por favor, recarga la página o verifica tu conexión a internet.</p>
         </div>
       `;
-    }
+    } else {
+      // Language translations
+      const translations = {
+        es: {
+          home: "Inicio",
+          news: "Noticias Oficiales",
+          social: "Red Social",
+          profile: "Perfil",
+          birthdays: "Cumpleaños",
+          suggestions: "Personas que quizás conozcas",
+          contacts: "Contactos",
+          language: "Idioma",
+          error: "Ocurrió un error. Por favor, recarga la página."
+        },
+        wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", error: "Alainnapa. Jale jujuya." },
+        pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", error: "Pawana. Wökö puyö." },
+        en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", error: "An error occurred. Please reload." },
+        ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", error: "Ошибка. Перезагрузите." },
+        ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", error: "حدث خطأ. أعد التحميل." },
+        zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", error: "发生错误。请刷新。" }
+      };
 
-    // Language translations
-    const translations = {
-      es: {
-        home: "Inicio",
-        news: "Noticias Oficiales",
-        social: "Red Social",
-        profile: "Perfil",
-        birthdays: "Cumpleaños",
-        suggestions: "Personas que quizás conozcas",
-        contacts: "Contactos",
-        language: "Idioma",
-        error: "Ocurrió un error. Por favor, recarga la página."
-      },
-      wayuunaiki: { home: "Jepirra", news: "Waneepia", social: "Waya", profile: "Aipirua", error: "Alainnapa. Jale jujuya." },
-      pemon: { home: "Panton", news: "Yekuana", social: "Kumana", profile: "Enek", error: "Pawana. Wökö puyö." },
-      en: { home: "Home", news: "Official News", social: "Social Network", profile: "Profile", error: "An error occurred. Please reload." },
-      ru: { home: "Главная", news: "Официальные новости", social: "Социальная сеть", profile: "Профиль", error: "Ошибка. Перезагрузите." },
-      ar: { home: "الرئيسية", news: "الأخبار الرسمية", social: "الشبكة الاجتماعية", profile: "الملف الشخصي", error: "حدث خطأ. أعد التحميل." },
-      zh: { home: "首页", news: "官方新闻", social: "社交网络", profile: "个人资料", error: "发生错误。请刷新。" }
-    };
+      // Main App Component
+      function App() {
+        const [language, setLanguage] = React.useState("es");
+        const [posts, setPosts] = React.useState([]);
+        const [news, setNews] = React.useState([]);
+        const [showMessagePopup, setShowMessagePopup] = React.useState(false);
+        const [showBirthdayPopup, setShowBirthdayPopup] = React.useState(false);
+        const [error, setError] = React.useState(null);
 
-    // Error Boundary Component
-    function ErrorBoundary({ t, children }) {
-      const [hasError, setHasError] = React.useState(false);
+        // Fetch data
+        React.useEffect(() => {
+          axios.get("/api/news")
+            .then((res) => setNews(Array.isArray(res.data) ? res.data : []))
+            .catch((err) => {
+              console.error("Error fetching news:", err.message);
+              setError("No se pudieron cargar las noticias.");
+            });
+          axios.get("/api/posts")
+            .then((res) => setPosts(Array.isArray(res.data) ? res.data : []))
+            .catch((err) => {
+              console.error("Error fetching posts:", err.message);
+              setError("No se pudieron cargar las publicaciones.");
+            });
+        }, []);
 
-      React.useEffect(() => {
-        window.onerror = () => setHasError(true);
-        return () => (window.onerror = null);
-      }, []);
+        const t = translations[language] || translations.es;
 
-      if (hasError) {
-        return <div className="p-4 text-[#2a2a2a]">{t.error}</div>;
-      }
-      return children;
-    }
+        // Error fallback
+        if (error) {
+          return (
+            <div className="p-4 text-[#2a2a2a]">
+              <h2>Error</h2>
+              <p>{error}</p>
+              <p>Por favor, recarga la página.</p>
+            </div>
+          );
+        }
 
-    // Main App Component
-    function App() {
-      const [language, setLanguage] = React.useState("es");
-      const [posts, setPosts] = React.useState([]);
-      const [news, setNews] = React.useState([]);
-      const [showMessagePopup, setShowMessagePopup] = React.useState(false);
-      const [showBirthdayPopup, setShowBirthdayPopup] = React.useState(false);
-
-      // Fetch data with error handling
-      React.useEffect(() => {
-        axios.get("/api/news")
-          .then((res) => setNews(res.data || []))
-          .catch((err) => console.error("Error fetching news:", err.message));
-        axios.get("/api/posts")
-          .then((res) => setPosts(res.data || []))
-          .catch((err) => console.error("Error fetching posts:", err.message));
-      }, []);
-
-      const t = translations[language] || translations.es;
-
-      return (
-        <ErrorBoundary t={t}>
+        return (
           <div className="min-h-screen flex flex-col">
             {/* Header */}
             <header className="bg-[#e11a1d] text-white fixed top-0 w-full z-10 shadow">
@@ -97,8 +100,8 @@
                   />
                 </div>
                 <div className="flex space-x-4">
-                  <button className="hover:bg-[#b4141e] p-2 rounded">Inicio</button>
-                  <button className="hover:bg-[#b4141e] p-2 rounded">Perfil</button>
+                  <button className="hover:bg-[#b4141e] p-2 rounded">{t.home}</button>
+                  <button className="hover:bg-[#b4141e] p-2 rounded">{t.profile}</button>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
@@ -152,13 +155,14 @@
                 {news.length > 0 ? (
                   news.map((item) => (
                     <div
-                      key={item.id || Math.random()}
+                      key={item.id || `news-${Math.random()}`}
                       className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]"
                     >
                       <img
                         src={item.image || "https://via.placeholder.com/300"}
                         alt="News"
                         className="w-full h-40 object-cover rounded"
+                        onError={(e) => (e.target.src = "https://via.placeholder.com/300")}
                       />
                       <h3 className="text-[#2a2a2a] font-bold">{item.title || "Sin título"}</h3>
                       <p className="text-[#2a2a2a]">{item.summary || "Sin resumen"}</p>
@@ -173,7 +177,7 @@
                 {posts.length > 0 ? (
                   posts.map((post) => (
                     <div
-                      key={post.id || Math.random()}
+                      key={post.id || `post-${Math.random()}`}
                       className="bg-[#ffffff] p-4 rounded shadow-[#e2e2e2]"
                     >
                       <div className="flex items-center">
@@ -181,6 +185,7 @@
                           src={post.userAvatar || "https://via.placeholder.com/40"}
                           alt="User"
                           className="w-10 h-10 rounded-full"
+                          onError={(e) => (e.target.src = "https://via.placeholder.com/40")}
                         />
                         <div className="ml-2">
                           <p className="text-[#2a2a2a] font-bold">{post.userName || "Anónimo"}</p>
@@ -308,20 +313,22 @@
               </div>
             </footer>
           </div>
-        </ErrorBoundary>
-      );
-    }
+        );
+      }
 
-    // Render the app with error handling
-    try {
-      ReactDOM.render(<App />, document.getElementById("root"));
-    } catch (e) {
-      console.error("Render error:", e.message);
-      document.getElementById("root").innerHTML = `
-        <div style="padding: 20px; color: #2a2a2a;">
-          Error al renderizar la aplicación: ${e.message}. Por favor, recarga la página.
-        </div>
-      `;
+      // Render the app
+      try {
+        ReactDOM.render(<App />, document.getElementById("root"));
+      } catch (e) {
+        console.error("Render error:", e.message);
+        document.getElementById("root").innerHTML = `
+          <div style="padding: 20px; color: #2a2a2a; font-family: Arial;">
+            <h2>Error al Renderizar</h2>
+            <p>${e.message}</p>
+            <p>Por favor, recarga la página o contacta al soporte.</p>
+          </div>
+        `;
+      }
     }
   </script>
 </body>
